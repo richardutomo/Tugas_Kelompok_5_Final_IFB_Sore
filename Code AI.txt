@@ -1,0 +1,678 @@
+let screen = "";
+let uname = ["OWNER","PURCHASER","SELLER"]
+let listpages = [
+    {page: "profile"},
+    {page: "stock"},
+    {page: "sales"},
+    {page: "purchasing"},
+    {page: "about"},
+    {page: "account list"},
+]
+let editoradd = "add";
+let listpagespattern = listpages.map(item => `${item.page}`).join("|");
+let user = "";
+
+let name = "";
+let pass = "";
+let cpass = "";
+let key = "";
+
+const vregisterscreen = visual({"screen": "Register"});
+const vloginscreen = visual({"screen": "Login"});
+const vhomescreen = visual({"screen": "Home"});
+const vprofilescreen = visual({"screen": "Profile"});
+
+
+projectAPI.getUserinfo = function(p, params, callback) {
+    p.userData.username = params.user;
+    user = params.user;
+    p.play('Login Successfull')
+    p.play(`Hello ${params.user}, What can i do for you ?`);
+    callback();
+};
+
+projectAPI.getStatusRegister = function(p, params, callback) {
+    p.userData.status = params.status[0];
+    if (p.userData.status == true) {
+        user = params.status[1];
+        uname.push(user);
+        p.play('Registration Successfull, You can login now.');
+    }
+    else{
+        p.play('Registration Failed')
+        p.play(`Please Register Again`);
+    }
+    callback();    
+};
+
+projectAPI.getStatusLogin = function(p, params, callback) {
+    p.userData.status = params.status[0];
+    if (p.userData.status == true) {
+        user = params.status[1];
+        p.play('Login Successfull');
+        p.play(`Hello ${user}, What can i do for you ?`);
+    }
+    else{
+        p.play('Login Failed')
+        p.play(`Please Login Again`);
+    }
+    callback();
+};
+
+projectAPI.getstatusaddstock = function(p, params, callback) {
+    p.userData.status = params.status;
+    if (p.userData.status) {
+        p.play(`New product successfully added`)
+    }
+    else{
+        p.play("Failed to add new Product")
+    }
+    callback();
+};
+
+projectAPI.gettransactionResult = function(p, params, callback) {
+    let word = p.visual.screen == "Sales" ? "sales" : "purchase";
+    if (params.status[0]){
+        p.play(`${word} transaction successfully saved`)
+    }
+    else{
+        p.play(`save ${word} transaction failed.`)
+        p.play(`${params.status[1]}`)
+    }
+    callback();
+};
+
+projectAPI.getSearchResult = function(p, params, callback) {
+    let results = params.result;
+    if (results.length >0) {
+        p.play(`you found ${results.length} product`)
+        p.play("Here is the result")
+        for (let i = 0; i<results.length ; i++){
+            p.play(`${i+1}. ${results[i][0]}`);
+            p.play(`Remaining Stock ${results[i][2]}`);
+        }
+    }
+    else{
+        p.play("Product not found")
+    }
+    callback();
+};
+
+projectAPI.getaddproresult = function(p, params, callback) {
+    if (params.result) {
+        p.play(`item is added to list order`)
+        p.play(`do you want to add more product?`)
+        p.then(moreproduct)
+    }
+    else{
+        p.play(`sorry, ${params.result[1]}`)
+        p.play(`please, tell me the product again`)
+    }
+    callback();
+};
+
+projectAPI.sendtext = function(p, params, callback) {
+    p.play(`${params.status}`)
+    if (params.status == "The product seccessfully edited") {
+        editoradd = "add";
+    }
+    callback();
+};
+
+projectAPI.geteditproresult = function(p, params, callback) {
+    if (params.status[0]) {
+        p.play("Go to edit mode");
+        editoradd = "edit"
+        p.play('you can edit product now.')
+    }
+    else{
+        p.play(`sorry, ${params.status[1]}`)
+    }
+    callback();
+};
+
+projectAPI.getdeleteproresult = function(p, params, callback) {
+    if (params.status[0]) {
+        p.play(`${params.status[1]} has been deleted`)
+    }
+    else{
+        p.play(`sorry, ${params.status[1]}`)
+    }
+    callback();
+};
+
+projectAPI.detailimageconfirmation = function(p, params, callback) {
+    if(params.status == true) {
+        p.play("Do you want to save image?");
+        p.then(saveimage);
+    }
+    else{
+        p.play('Sorry, Image not found');
+    }
+    callback();
+};
+ 
+projectAPI.imgnewproduct = function(p, params, callback) {
+    if(params.status == true) {
+        p.play('Image has beed saved, What is the product name?');
+        p.then(fillpname)
+    }
+    else{
+        p.play('Sorry, Image not found');
+    }
+    callback();
+};
+
+
+intent("go back", p => {
+    if (screen=="Login") {
+        p.play("You cant go back.");
+    }
+    else if(screen == "Home"){
+        p.play("This is the Home screen, please logout to go back")
+    }
+    else {
+        p.play("go back to previous page");
+        p.play({command: "Go Back"})
+    }
+    
+});
+
+intent('What can i do here?', p => {
+    screen = p.visual.screen;
+    switch (screen) {
+        case "Login":
+            p.play('This is the Login screen');
+            p.play("You can login your acccount")
+            p.play('you can register new account by saying i want to register account')
+            break;
+        case "Register":
+            p.play('This is the Register screen');
+            p.play("You can Register new acccount or you can back to login page by saying go back")
+            break;
+        case "Home":
+            p.play('This is the Home screen');
+            p.play("You can Open Profile, Sales, Purchasing, Stock, and About page.")
+            break;
+        case "Stock":
+            p.play('This is the Stock screen');
+            p.play('You can search product by name here, and you can add new product')
+            break;
+        case "Add Product":
+            p.play("This is add product screen, you can add new product here");
+            break;
+        case 'add sales transaction':
+            p.play('This is add sales transaction screen, you can add new sales transaction here');
+            break;
+        case 'add purchase transaction':
+            p.play('This is add purchase transaction screen, you can add new purchase transaction here');
+            break;
+        case "Account List":
+            p.play('This is the account list screen');
+            p.play('You can see registered account here')
+            break;
+        case "Sales":
+            p.play('This is the Sales screen');
+            p.play('You can see and find sales transaction here, or you can add new sales')
+            break;
+        case "Purchasing":
+            p.play('This is the Purchasing screen');
+            p.play('You can see and find Purchasing transaction here, or you can add new purchase')
+            break;
+        case "Profile":
+            p.play('This is the Profile screen');
+            p.play('You can see Detail profile here, or you can logout your account')
+            break;
+        case "Detail Product":
+            p.play('This is Product detail screen');
+            p.play('You can see product detail and history transaction here, you also can change image of the product');
+            break;
+        default:
+            p.play('(Sorry,|) I have no data about this screen');
+    }
+});
+
+// Registrasi
+intent(vregisterscreen,`My username is $(UNAME* (.{2,}))`,p =>{
+    p.play({command: "getRName", text: p.UNAME.value});
+    name = p.UNAME.value;
+    p.play(`Hello ${p.UNAME.value}, What password do you want?`)
+})
+intent(vregisterscreen,`My password is $(PASS* (.{2,}))`,p=>{
+    p.play({command: "getRPass", text: p.PASS.value});
+    pass = p.PASS.value;
+    p.play(`Let me confirm your password, Your pass is ${p.PASS.value}?`);
+    p.then(confirmpass);
+})
+intent(vregisterscreen,`The access key is $(KEY* (.{2,}))`,p=>{
+    p.play({command: "getKey",text: p.KEY.value});
+    key = p.KEY.value;
+    p.play("Say register account to register it")
+})
+intent(vregisterscreen,`Register Account`,p=>{
+    if (name != "" && pass != "" && cpass!="" && key!="") {
+        p.play({command: "Register Action"});
+        p.resolve()
+    }
+    else{
+        p.play('Please fill form before register account')
+    }
+})
+
+intent(vloginscreen,"I want to register account", p => {
+    p.play("Go to register screen")
+    p.play({command: "Open Register"})
+    p.play("What is your username?")
+    p.then(registerusername);
+})
+
+let registerusername = context(()=>{
+    intent(`My username is $(UNAME* (.{2,}))`,p =>{
+        p.play({command: "getRName", text: p.UNAME.value});
+        name = p.UNAME.value;
+        p.play(`Hello ${p.UNAME.value}, What password do you want?`)
+    })
+    intent(`My password is $(PASS* (.{2,}))`,p=>{
+        p.play({command: "getRPass", text: p.PASS.value});
+        pass = p.PASS.value;
+        p.play(`Let me confirm your password, Your pass is ${p.PASS.value}?`);
+        p.then(confirmpass);
+    })
+    intent(`The access key is $(KEY* (.{2,}))`,p=>{
+        p.play({command: "getKey",text: p.KEY.value});
+        key = p.KEY.value;
+        p.play("Say register account to register it")
+    })
+    intent(`Register Account`,p=>{
+        if (name != "" && pass != "" && cpass!="" && key!="") {
+            p.play({command: "Register Action"});
+            p.resolve()
+        }
+        else{
+            p.play('Please fill form before register account')
+        }
+    })
+    intent(`cancel`,p=>{
+        p.play('Register account has been canceled')
+        p.resolve();
+    })
+    fallback("You have to say 'My Username is ...' or 'my password is ...' or 'the access key is ...' or cancel.")
+})
+
+let confirmpass = context(()=>{
+    intent(`yes`,p =>{
+        p.play({command: "getRCPass"})
+        cpass = pass;
+        p.play("What is the access key?")
+        p.resolve()
+    })
+    intent("no",p => {
+        p.play("Please tell me your password again.")
+        p.resolve();
+    })
+
+    fallback("You have to say yes or no.")
+})
+
+// Login
+intent(vloginscreen,`my username is $(USERNAME* (.{2,}))`,p => {
+    p.play({command: "getName", text: p.USERNAME.value});
+    p.play(`Hello ${p.USERNAME.value}, tell me your password`);
+    p.then(fillpass);
+})
+
+let fillpass = context(()=>{
+    intent(`My Password is $(PASS* (.{2,}))`,p =>{
+        p.play({command: "getPass", text: p.PASS.value});
+        p.resolve();
+    })
+    intent(`cancel`,p=>{
+        p.play('login account has been canceled')
+        p.resolve();
+    })
+    fallback("You have to say 'My password is ...' or cancel.")
+})
+
+// Logout
+intent(vprofilescreen,'Logout My Account', p => {
+    if (uname.includes(user)) {
+        p.play('Logging out account');
+        p.play({command : "Logout"});    
+        user = "";
+    }
+    else if (user == "") {
+        p.play("You're not login yet")
+    }
+    else{
+        p.play("Sorry you can't logout")
+    }
+});
+
+
+
+intent(vhomescreen,`open $(PAGE ${listpagespattern}) page`, p => {
+    if (uname.includes(user)) {
+        if (p.PAGE.value == "account list") {
+            if (user == "OWNER") {
+                p.play(`Opening ${p.PAGE.value} Page`);
+                p.play({command : `Open ${p.PAGE.value.toLowerCase()}`}); 
+            }
+            else{
+                p.play(`Sorry you don't have access to account list page`)
+            }
+        }
+        else{
+            p.play(`Opening ${p.PAGE.value} Page`);
+            p.play({command : `Open ${p.PAGE.value.toLowerCase()}`});        
+        }
+        
+    }
+    else if (user == "") {
+        p.play("Sorry, Please login first")
+    }
+    else{
+        p.play("Sorry you dont have access")
+    }
+});
+
+const vsalesscreen = visual({"screen": "Sales"});
+const vpurchasingscreen = visual({"screen": "Purchasing"});
+
+intent(vsalesscreen,`search for $(ITEM* (.{2,}))`,p => {
+    p.play({command: "getSearchSales", text: p.ITEM.value});
+    p.play(`Searching for ${p.ITEM.value}`);
+})
+
+intent(vpurchasingscreen,`search for $(ITEM* (.{2,}))`,p => {
+    p.play({command: "getSearchPurchasing", text: p.ITEM.value});
+    p.play(`Searching for ${p.ITEM.value}`);
+})
+
+intent(vsalesscreen, `add new sales`,p=>{
+    p.play("Opening add transaction screen");
+    p.play({command: "Add sales",text: "Sales"});
+    order = []
+    p.play('welcome to add transaction screen')
+    p.play(`what is the customer name?`)
+})
+
+intent(vpurchasingscreen, `add new purchase`,p=>{
+    p.play("Opening add transaction screen");
+    p.play({command:"Add purchase",text:"Purchasing"})
+    order = []
+    p.play("welcome to add transaction screen")
+    p.play(`what is the supplier name?`)
+})
+
+
+
+const vnewstransactionscreen = visual({"screen": "add sales transaction"});
+const vnewptransactionscreen = visual({"screen": "add purchase transaction"});
+let itemorder = ""
+let priceorder = ""
+let qtyorder = ""
+let order = [];
+
+intent(vnewstransactionscreen,`The Customer name is $(CUST* (.{2,}))`,p=>{
+    p.play({command: "insertname",text:p.CUST.value})
+    p.play("Okay, What product is the customer order?")
+})
+
+intent(vnewptransactionscreen,`The Supplier name is $(CUST* (.{2,}))`,p=>{
+    p.play({command: "insertname",text:p.CUST.value})
+    p.play("Okay, What product we order?")
+})
+
+intent(vnewstransactionscreen | vnewptransactionscreen,`the product is $(PRODUCT* (.{2,}))`,p=>{
+    itemorder = p.PRODUCT.value;
+    p.play({command:"insertitemorder",item:p.PRODUCT.value})
+    p.play(`Howmuch is the price ?`)
+})
+intent(vnewstransactionscreen | vnewptransactionscreen,`the price is $(NUMBER)`,p=>{
+    priceorder = p.NUMBER.value;
+    p.play({command:"insertpriceorder",price:p.NUMBER.value})
+    p.play(`howmany is the quantity?`)
+})
+intent(vnewstransactionscreen | vnewptransactionscreen,`the quantity is $(NUMBER)`,p=>{
+    qtyorder = p.NUMBER.value;
+    p.play({command:"insertqtyorder",qty:p.NUMBER.value})
+    p.play(`${qtyorder} ${itemorder} for ${priceorder} each`)
+    if(editoradd == "add"){
+        p.play(`Do you want to add to list order?`)
+    }
+    else{
+        p.play(`Do you want to edit order?`)
+    }
+    p.then(confirmlist);
+})
+intent(vnewstransactionscreen | vnewptransactionscreen,`cancel product`,p=>{
+     p.play({command:"clearorder"})
+     p.play(`The product has been canceled`)
+     p.play('Please, tell me the product again')
+})
+intent(vnewstransactionscreen | vnewptransactionscreen,`save transaction`,p=>{
+     p.play({command:"inserttransaction",type:p.visual.screen})
+})
+intent(vnewstransactionscreen | vnewptransactionscreen,`i want to edit $(INAME* (.{2,}))`,p=>{
+    editoradd = "edit"
+    p.play({command: 'findeditorder',text:p.INAME.value})
+})
+intent(vnewstransactionscreen | vnewptransactionscreen,`edit transaction`,p=>{
+    p.play({command:"editorder"})
+})
+intent(vnewstransactionscreen | vnewptransactionscreen,`i want to delete $(INAME* (.{2,}))`,p=>{
+    p.play({command: 'finddeleteorder',text:p.INAME.value})
+})
+
+let moreproduct = context(()=>{
+    intent('yes',p=>{
+        p.play("what is the product you want to add?")
+        p.resolve();
+        p.resolve();
+    })
+    intent(`no`,p=>{
+        p.play("you can say save transaction to save the transaction or you can say i want to edit product name to edit the order list")
+        p.resolve();
+        p.resolve();
+    })
+    fallback(`you have to say yes or no`)
+})
+
+let confirmlist = context(()=>{
+    intent(`yes`,p=>{
+        if(editoradd == "add") {
+            p.play({command:"inserttolistorder"})
+            p.resolve()
+        }
+        else{
+            p.play({command:"editorder"})
+            p.resolve()
+        }
+        
+    })
+    intent(`no`,p=>{
+        p.play({command:"clearorder"})
+        p.play(`add order canceled`)
+        p.play('Please, tell me the product again')
+        p.resolve()
+    })
+    fallback(`Sorry, you have to say yes or no`)
+})
+
+
+
+
+const vstockscreen = visual({"screen": "Stock"});
+
+intent(vstockscreen,`search for $(ITEM* (.{2,}))`,p => {
+    p.play({command: "getSearchStock", text: p.ITEM.value});
+    p.play(`Searching for ${p.ITEM.value}`);
+})
+
+intent(vstockscreen,`open $(ITEM* (.{2,})) detail`,p => {
+    p.play({command: "openProductInfo", text: p.ITEM.value});
+    p.play(`Opening product details`);
+})
+
+intent(vstockscreen,`add new product`,p => {
+    p.play({command: "Add Product"});
+    p.play(`This is add product screen, you can add new product here`);
+})
+
+const vnewproscreen = visual({"screen": "Add Product"});
+
+intent(vnewproscreen,`(add|change product) image`,p => {
+    p.play('Which source you want to choose?')
+    p.play('from camera, gallery or link URL?');
+    p.then(fillimg);
+})
+
+let fillimg = context(()=>{
+    intent('camera',p=>{
+        p.play('Opening camera');
+        p.play({command:'newimagecamera'});
+        p.resolve();
+    })
+    intent('gallery',p=>{
+        p.play('Opening gallery');
+        p.play({command:'newimagegallery'});
+        p.resolve();
+    })
+    intent('link url',p=>{
+        p.play('please fill the link url, and press check button');
+        p.play({command:'newimagelink'});
+        p.resolve();
+    })
+    intent(`cancel`,p=>{
+        p.play('add new product has been canceled');
+        p.play({command:"Go Back"})
+        p.resolve();
+    })
+    fallback(`Sorry, you have to say camera, gallery, link url or cancel`);
+})
+
+
+
+let fillpname = context(()=>{
+    intent(`the product name is $(PNAME* (.{2,}))`,p=>{
+        p.play({command: "inputPName",text: p.PNAME.value});
+        p.play("okay, What is the brand name ?");
+        p.then(fillbrand);
+    })
+    intent(`cancel`,p=>{
+        p.play('add new product has beed canceled');
+        p.play({command:"Go Back"})
+        p.resolve();
+        p.resolve();
+    })
+
+    fallback(`you have to say the product name is or cancel`)
+})
+
+let fillbrand = context(()=>{
+    intent(`the brand name is $(BRAND* (.{2,}))`,p=>{
+        p.play({command: "inputBrand",text: p.BRAND.value});
+        p.play(`okay, Which stock type you want to choose? New or Old stock?`)
+        p.then(stocktype);
+    })
+    intent('cancel',p=>{
+        p.play('add new product has beed canceled');
+        p.play({command:"Go Back"})
+        p.resolve();
+        p.resolve();
+        p.resolve();
+    })
+    
+    fallback(`you have to say the brand name is or cancel`)
+})
+
+let stocktype = context(()=>{
+    intent(`new stock`,p=>{
+        p.play({command: "insertnewproduct"})
+        p.resolve();
+        p.resolve();
+        p.resolve();
+        p.resolve();
+    })
+    intent(`old stock`,p=>{
+        p.play("How many stock you currently have?")
+        p.play({command: "oldstock"})
+        p.then(oldstock)
+    })
+    intent('cancel',p=>{
+        p.play('add new product has beed canceled');
+        p.play({command:"Go Back"})
+        p.resolve();
+        p.resolve();
+        p.resolve();
+        p.resolve();
+    })
+    fallback(`you have to say new stock or old stock or cancel`)
+})
+
+let oldstock = context(()=>{
+    intent(`current stock is $(NUM* (.{1,}))`,p=>{
+        p.play({command:"inputstock",text: p.NUM.value})
+        p.play({command:"insertnewproduct"})
+        p.resolve();
+        p.resolve();
+        p.resolve();
+        p.resolve();
+        p.resolve();
+    })
+    intent(`cancel`,p=>{
+        p.play('add new product has beed canceled');
+        p.play({command:"Go Back"})
+        p.resolve();
+        p.resolve();
+        p.resolve();
+        p.resolve();
+        p.resolve();
+    })
+    fallback(`you have to say current stock is or cancel`)
+})
+
+const vdetailproduct = visual({"screen": "Detail Product"});
+
+intent(vdetailproduct,`change product image`,p => {
+    p.play('Which source do you want to choose?');
+    p.play('From camera, gallery or Link url?');
+    p.then(choosesource);
+})
+
+let choosesource = context(()=>{
+    intent('camera',p=>{
+        p.play('Opening camera');
+        p.play({command:'changeProductImageCamera'});
+        p.resolve();
+    })
+    intent('gallery',p=>{
+        p.play('Opening gallery');
+        p.play({command:'changeProductImageGallery'});
+        p.resolve();
+    })
+    intent('link url',p=>{
+        p.play('please fill the link url, and press check button');
+        p.play({command:'changeProductImageLink'});
+        p.resolve();
+    })
+    intent(`cancel`,p=>{
+        p.play('change product image has been canceled');
+        p.resolve();
+    })
+    
+    fallback(`You have to say camera, gallery, link url or cancel`)
+})
+
+let saveimage = context(()=>{
+    intent('yes',p=>{
+        p.play('Change image has beed saved');
+        p.play({command:'saveproductimage'});
+        p.resolve();
+    })
+    intent('no',p=>{
+        p.play('Change image has been cancel');
+        p.play({command:'cancelproductimage'});
+        p.resolve();
+    })
+})
